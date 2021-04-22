@@ -20,4 +20,6 @@ enum Constants {
     static let codable = "Codable"
     static let decodable = "Decodable"
     static let encodable = "Encodable"
+//    static let plainObjectSuffix = "PlainObject"
+//    static let enumObjectSuffix = "enum"
 }

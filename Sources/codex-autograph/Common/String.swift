@@ -16,4 +16,12 @@ extension String {
     func uppercasedFirstChar() -> Self {
         prefix(1).capitalized + dropFirst()
     }
+
+//    var isPlainObjectName: Bool {
+//        contains(Constants.plainObjectSuffix)
+//    }
+//
+//    var isEnumObjectName: Bool {
+//        contains(Constants.enumObjectSuffix)
+//    }
 }

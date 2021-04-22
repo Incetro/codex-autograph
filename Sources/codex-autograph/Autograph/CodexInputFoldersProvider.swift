@@ -22,10 +22,15 @@ public final class CodexInputFoldersProvider {
 extension CodexInputFoldersProvider: InputFoldersProvider {
 
     public func inputFoldersList(fromParameters parameters: AutographExecutionParameters) throws -> [String] {
-        guard let plainsFolder = parameters[.plains] else {
-            throw CodexAutographError.noPlainsFolder
+        var inputFolders: [String] = []
+        if let plainsFolder = parameters[.plains] {
+            inputFolders.append(plainsFolder)
+        } else if let enumsFolder = parameters[.enums] {
+            inputFolders.append(enumsFolder)
+        } else {
+            throw CodexAutographError.noFolders
         }
-        return [plainsFolder]
+        return inputFolders
     }
 }
 

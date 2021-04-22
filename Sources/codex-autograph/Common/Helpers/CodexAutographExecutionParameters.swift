@@ -16,6 +16,9 @@ public enum CodexAutographExecutionParameters: String {
 
     /// Plain objects folder
     case plains = "-plains"
+
+    /// Enum objects folder
+    case enums = "-enums"
 }
 
 // MARK: - ExecutionParameters
