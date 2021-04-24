@@ -25,7 +25,7 @@ public final class CodexStructuresImplementationComposer {
     ///   - projectName: current project name
     ///   - imports: current imports
     /// - Returns: header comment from string
-    public func headerComment(
+    private func headerComment(
         fileName: String,
         projectName: String,
         imports: [String]
@@ -108,7 +108,7 @@ public final class CodexStructuresImplementationComposer {
                     }
                 }
             }
-        return Set(formattersInstance).joined(separator: "\n") + "\n"
+        return Set(formattersInstance).joined(separator: "\n")
     }
 
     /// Decode initializer
@@ -117,7 +117,10 @@ public final class CodexStructuresImplementationComposer {
     private func decodeInitializer(
         fromStructure structure: StructureSpecification
     ) -> String {
-        var propertiesSequence = formatterInstances(fromStructure: structure)
+        var propertiesSequence = ""
+        if formatterInstances(fromStructure: structure) != "" {
+            propertiesSequence = formatterInstances(fromStructure: structure) + "\n"
+        }
         propertiesSequence
             .append(
                 structure
@@ -207,8 +210,11 @@ public final class CodexStructuresImplementationComposer {
     private func encode(
         fromStructure structure: StructureSpecification
     ) -> String {
-        var propertySequence = formatterInstances(fromStructure: structure)
-        propertySequence.append(
+        var propertiesSequence = ""
+        if formatterInstances(fromStructure: structure) != "" {
+            propertiesSequence = formatterInstances(fromStructure: structure) + "\n"
+        }
+        propertiesSequence.append(
             structure
                 .properties
                 .filter { $0.annotations.contains(annotationName: Constants.jsonArgument) }
@@ -240,7 +246,7 @@ public final class CodexStructuresImplementationComposer {
         // MARK: - \(Constants.encodable)
 
         func encode(to encoder: Encoder) throws {
-        \(propertySequence)
+        \(propertiesSequence)
         }
         """
     }

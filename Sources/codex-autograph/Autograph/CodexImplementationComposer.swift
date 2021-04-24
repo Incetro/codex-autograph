@@ -30,6 +30,8 @@ extension CodexImplementationComposer: ImplementationComposer {
             .compose(forSpecifications: specifications, parameters: parameters)
         let enumModels = try CodexEnumsImplementationComposer()
             .compose(forSpecifications: specifications, parameters: parameters)
-        return structModels + enumModels
+        let helper = try CodeKeyedContainerImplementationComposer()
+            .compose(forSpecifications: specifications, parameters: parameters)
+        return structModels + enumModels + helper
     }
 }

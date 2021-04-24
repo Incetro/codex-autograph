@@ -19,9 +19,13 @@ public enum CodexAutographExecutionParameters: String {
 
     /// Enum objects folder
     case enums = "-enums"
+
+    /// Keyed Container values count
+    case keyedContainerValuesCount = "-keyedContainerCount"
 }
 
 // MARK: - ExecutionParameters
+
 public extension AutographExecutionParameters {
 
     subscript(_ parameter: CodexAutographExecutionParameters) -> String? {

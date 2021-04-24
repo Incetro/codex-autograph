@@ -25,7 +25,7 @@ public final class CodexEnumsImplementationComposer {
     ///   - projectName: current project name
     ///   - imports: current imports
     /// - Returns: header comment from string
-    public func headerComment(
+    private func headerComment(
         fileName: String,
         projectName: String,
         imports: [String]
@@ -47,19 +47,6 @@ public final class CodexEnumsImplementationComposer {
         """
     }
 
-    /// Imports
-    /// - Parameter enum: target enum
-    /// - Returns: imports from string
-    private func imports(
-        fromEnum enum: EnumSpecification
-    ) -> [String] {
-        var imports = `enum`.declaration.imports
-        if !imports.contains("Codex") {
-            imports.append("Codex")
-        }
-        return imports.filter { $0 != "Foundation" }
-    }
-
     /// Declaration
     /// - Parameters:
     ///   - enum: target enum
@@ -74,6 +61,7 @@ public final class CodexEnumsImplementationComposer {
             .first { $0.isCodexAppropriate }
             .flatMap(\.codexType) ?? `enum`.codexType.unwrap()
         return """
+
         // MARK: - \(inheritedType)
 
         extension \(`enum`.name): \(inheritedType) {
@@ -97,9 +85,13 @@ public final class CodexEnumsImplementationComposer {
         // MARK: - CodingKeys
 
         enum CodingKeys: CodingKey, CaseIterable {
-            \(casesSequence)
+
+            // MARK: - Cases
+
+        \(casesSequence.indent)
         }
-        """
+
+        """.indent
     }
 
     /// Decode switch cases
@@ -118,164 +110,65 @@ public final class CodexEnumsImplementationComposer {
                         self = .\(`case`.name)
                     """
                 } else if `case`.arguments.count == 1 {
+                    if `case`.arguments[0].bodyName == "" {
                     strCase = """
                     case .\(`case`.name):
-                        self = .\(`case`.name)(try container.decode(\(`case`.arguments[0].type).self, forKey: .\(`case`.name))
+                        self = .\(`case`.name)(try container.decode(\(`case`.arguments[0].type).self, forKey: .\(`case`.name)))
                     """
+                    } else {
+                        strCase = """
+                        case .\(`case`.name):
+                            self = .\(`case`.name)(\(`case`.arguments[0].bodyName): try container.decode(\(`case`.arguments[0].type).self, forKey: .\(`case`.name)))
+                        """
+                    }
                 } else if `case`.arguments.count == 2 {
-                    let firstName = makeVariableName(argument: `case`.arguments[0])
-                    let secondName = makeVariableName(argument: `case`.arguments[1])
-                    if let firstName = firstName, let secondName = secondName {
-                        strCase = """
-                        case .\(`case`.name):
-                            let (\(firstName), \(secondName)): (\(`case`.arguments[0].type), \(`case`.arguments[1].type)) = try container.decodeValues(for: .\(`case`.name)
-                            self = .\(`case`.name)(\(firstName): \(firstName), \(secondName): \(secondName))
-                        """
-                    } else {
-                        strCase = """
-                        case .\(`case`.name):
-                            let (value1, value2): (\(`case`.arguments[0].type), \(`case`.arguments[1].type)) = try container.decodeValues(for: .\(`case`.name)
-                            self = .\(`case`.name)(value1, value2)
-                        """
+                    var argumentNames: [String] = []
+                    var argumentTypes: [String] = []
+                    var initializerArguments: [String] = []
+                    var count = 1
+                    for argument in `case`.arguments {
+                        argumentTypes.append("\(argument.type)")
+                        if let argumentName = makeVariableName(argument: argument) {
+                            argumentNames.append(argumentName)
+                            initializerArguments.append("\(argumentName): \(argumentName)")
+                        } else {
+                            argumentNames.append("value\(count)")
+                            initializerArguments.append("value\(count)")
+                        }
+                        count += 1
                     }
-                } else if `case`.arguments.count == 3 {
-                    let firstName = makeVariableName(argument: `case`.arguments[0])
-                    let secondName = makeVariableName(argument: `case`.arguments[1])
-                    let thirdName = makeVariableName(argument: `case`.arguments[2])
-                    if let firstName = firstName, let secondName = secondName, let thirdName = thirdName {
-                        strCase = """
-                        case .\(`case`.name):
-                            let (
-                                \(firstName),
-                                \(secondName),
-                                \(thirdName)
-                            ): (
-                                \(`case`.arguments[0].type),
-                                \(`case`.arguments[1].type),
-                                \(`case`.arguments[2].type)
-                            ) = try container.decodeValues(for: .\(`case`.name)
-                            self = .\(`case`.name)(
-                                \(firstName): \(firstName),
-                                \(secondName): \(secondName),
-                                \(thirdName): \(thirdName)
-                            )
-                        """
-                    } else {
-                        strCase = """
-                        case .\(`case`.name):
-                            let (
-                                value1,
-                                value2,
-                                value3
-                            ): (
-                                \(`case`.arguments[0].type),
-                                \(`case`.arguments[1].type),
-                                \(`case`.arguments[2].type)
-                            ) = try container.decodeValues(for: .\(`case`.name)
-                            self = .\(`case`.name)(value1, value2, value3)
-                        """
+                    strCase = """
+                    case .\(`case`.name):
+                        let (\(argumentNames.joined(separator: ", "))): (\(argumentTypes.joined(separator: ", "))) = try container.decodeValues(for: .\(`case`.name))
+                        self = .\(`case`.name)(\(initializerArguments.joined(separator: ", ")))
+                    """
+                } else if `case`.arguments.count > 2 {
+                    var argumentNames: [String] = []
+                    var argumentTypes: [String] = []
+                    var initializerArguments: [String] = []
+                    var count = 1
+                    for argument in `case`.arguments {
+                        argumentTypes.append("\(argument.type)".indent.indent)
+                        if let argumentName = makeVariableName(argument: argument) {
+                            argumentNames.append(argumentName.indent.indent)
+                            initializerArguments.append("\(argumentName): \(argumentName)".indent.indent)
+                        } else {
+                            argumentNames.append("value\(count)".indent.indent)
+                            initializerArguments.append("value\(count)".indent.indent)
+                        }
+                        count += 1
                     }
-                } else if `case`.arguments.count == 4 {
-                    let firstName = makeVariableName(argument: `case`.arguments[0])
-                    let secondName = makeVariableName(argument: `case`.arguments[1])
-                    let thirdName = makeVariableName(argument: `case`.arguments[2])
-                    let fourthName = makeVariableName(argument: `case`.arguments[3])
-                    if let firstName = firstName,
-                       let secondName = secondName,
-                       let thirdName = thirdName,
-                       let fourthName = fourthName
-                    {
-                        strCase = """
-                        case .\(`case`.name):
-                            let (
-                                \(firstName),
-                                \(secondName),
-                                \(thirdName),
-                                \(fourthName)
-                            ): (
-                                \(`case`.arguments[0].type),
-                                \(`case`.arguments[1].type),
-                                \(`case`.arguments[2].type),
-                                \(`case`.arguments[3].type)
-                            ) = try container.decodeValues(for: .\(`case`.name)
-                            self = .\(`case`.name)(
-                                \(firstName): \(firstName),
-                                \(secondName): \(secondName),
-                                \(thirdName): \(thirdName),
-                                \(fourthName): \(fourthName)
-                            )
-                        """
-                    } else {
-                        strCase = """
-                        case .\(`case`.name):
-                            let (
-                                value1,
-                                value2,
-                                value3,
-                                value4
-                            ): (
-                                \(`case`.arguments[0].type),
-                                \(`case`.arguments[1].type),
-                                \(`case`.arguments[2].type),
-                                \(`case`.arguments[3].type)
-                            ) = try container.decodeValues(for: .\(`case`.name)
-                            self = .\(`case`.name)(value1, value2, value3, value4)
-                        """
-                    }
-                } else if `case`.arguments.count == 5 {
-                    let firstName = makeVariableName(argument: `case`.arguments[0])
-                    let secondName = makeVariableName(argument: `case`.arguments[1])
-                    let thirdName = makeVariableName(argument: `case`.arguments[2])
-                    let fourthName = makeVariableName(argument: `case`.arguments[3])
-                    let fifthName = makeVariableName(argument: `case`.arguments[4])
-                    if let firstName = firstName,
-                       let secondName = secondName,
-                       let thirdName = thirdName,
-                       let fourthName = fourthName,
-                       let fifthName = fifthName
-                    {
-                        strCase = """
-                        case .\(`case`.name):
-                            let (
-                                \(firstName),
-                                \(secondName),
-                                \(thirdName),
-                                \(fourthName),
-                                \(fifthName)
-                            ): (
-                                \(`case`.arguments[0].type),
-                                \(`case`.arguments[1].type),
-                                \(`case`.arguments[2].type),
-                                \(`case`.arguments[3].type),
-                                \(`case`.arguments[4].type)
-                            ) = try container.decodeValues(for: .\(`case`.name)
-                            self = .\(`case`.name)(
-                                \(firstName): \(firstName),
-                                \(secondName): \(secondName),
-                                \(thirdName): \(thirdName),
-                                \(fourthName): \(fourthName),
-                                \(fifthName): \(fifthName)
-                            )
-                        """
-                    } else {
-                        strCase = """
-                        case .\(`case`.name):
-                            let (
-                                value1,
-                                value2,
-                                value3,
-                                value4,
-                                value5
-                            ): (
-                                \(`case`.arguments[0].type),
-                                \(`case`.arguments[1].type),
-                                \(`case`.arguments[2].type),
-                                \(`case`.arguments[3].type),
-                                \(`case`.arguments[4].type)
-                            ) = try container.decodeValues(for: .\(`case`.name)
-                            self = .\(`case`.name)(value1, value2, value3, value4, value5)
-                        """
-                    }
+                    strCase = """
+                    case .\(`case`.name):
+                        let (
+                    \(argumentNames.joined(separator: ",\n"))
+                        ): (
+                    \(argumentTypes.joined(separator: ",\n"))
+                        ) = try container.decodeValues(for: .\(`case`.name))
+                        self = .\(`case`.name)(
+                    \(initializerArguments.joined(separator: ",\n"))
+                        )
+                    """
                 }
                 return strCase
             }.joined(separator: "\n")
@@ -295,7 +188,7 @@ public final class CodexEnumsImplementationComposer {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             let key = container.allKeys.first
             switch key {
-            \(switchCases)
+        \(switchCases.indent)
             default:
                 throw DecodingError.valueNotFound(
                     Self.self,
@@ -331,67 +224,23 @@ public final class CodexEnumsImplementationComposer {
                         let firstName = makeVariableName(argument: `case`.arguments[0]) ?? "value1"
                         let secondName = makeVariableName(argument: `case`.arguments[1]) ?? "value2"
                         strCase = """
-                        case .\(`case`.name)(let \(firstName), let \(secondName)):
+                        case let .\(`case`.name)( \(firstName), \(secondName)):
                             try container.encodeValues(\(firstName), \(secondName), for: .\(`case`.name))
                         """
-                    } else if `case`.arguments.count == 3 {
-                        let firstName = makeVariableName(argument: `case`.arguments[0]) ?? "value1"
-                        let secondName = makeVariableName(argument: `case`.arguments[1]) ?? "value2"
-                        let thirdName = makeVariableName(argument: `case`.arguments[2]) ?? "value3"
+                    } else if `case`.arguments.count > 2 {
+                        var argumentNames: [String] = []
+                        var count = 1
+                        for argument in `case`.arguments {
+                            argumentNames.append((makeVariableName(argument: argument) ?? "value\(count)").indent)
+                            count += 1
+                        }
                         strCase = """
-                        case .\(`case`.name)(
-                            let \(firstName),
-                            let \(secondName),
-                            let \(thirdName)
+                        case let .\(`case`.name)(
+                        \(argumentNames.joined(separator: ",\n"))
                         ):
                             try container.encodeValues(
-                                \(firstName),
-                                \(secondName),
-                                \(thirdName)
-                                for: .\(`case`.name)
-                            )
-                        """
-                    } else if `case`.arguments.count == 4 {
-                        let firstName = makeVariableName(argument: `case`.arguments[0]) ?? "value1"
-                        let secondName = makeVariableName(argument: `case`.arguments[1]) ?? "value2"
-                        let thirdName = makeVariableName(argument: `case`.arguments[2]) ?? "value3"
-                        let fourthName = makeVariableName(argument: `case`.arguments[3]) ?? "value4"
-                        strCase = """
-                        case .\(`case`.name)(
-                            let \(firstName),
-                            let \(secondName),
-                            let \(thirdName),
-                            let \(fourthName)
-                        ):
-                            try container.encodeValues(
-                                \(firstName),
-                                \(secondName),
-                                \(thirdName),
-                                \(fourthName)
-                                for: .\(`case`.name)
-                            )
-                        """
-                    } else if `case`.arguments.count == 5 {
-                        let firstName = makeVariableName(argument: `case`.arguments[0]) ?? "value1"
-                        let secondName = makeVariableName(argument: `case`.arguments[1]) ?? "value2"
-                        let thirdName = makeVariableName(argument: `case`.arguments[2]) ?? "value3"
-                        let fourthName = makeVariableName(argument: `case`.arguments[3]) ?? "value4"
-                        let fifthName = makeVariableName(argument: `case`.arguments[4]) ?? "value5"
-                        strCase = """
-                        case .\(`case`.name)(
-                            let \(firstName),
-                            let \(secondName),
-                            let \(thirdName),
-                            let \(fourthName),
-                            let \(fifthName)
-                        ):
-                            try container.encodeValues(
-                                \(firstName),
-                                \(secondName),
-                                \(thirdName),
-                                \(fourthName),
-                                \(fifthName)
-                                for: .\(`case`.name)
+                        \(argumentNames.joined(separator: ",\n")),
+                            for: .\(`case`.name)
                         )
                         """
                     }
@@ -403,12 +252,15 @@ public final class CodexEnumsImplementationComposer {
         func encode(to encoder: Encoder) throws {
             var container = encoder.container(keyedBy: CodingKeys.self)
             switch self {
-            \(casesSequence)
+        \(casesSequence.indent)
             }
         }
         """
     }
 
+    /// Need to make variable name
+    /// - Parameter argument: current argument
+    /// - Returns: variable name from string
     private func makeVariableName(argument: ArgumentSpecification) -> String? {
         var variableName: String? = ""
         if argument.bodyName != "" {
@@ -458,27 +310,24 @@ extension CodexEnumsImplementationComposer: ImplementationComposer {
                 let headerSequence = headerComment(
                     fileName: `enum`.name,
                     projectName: parameters.projectName,
-                    imports: imports(fromEnum: `enum`)
+                    imports: `enum`.declaration.imports
                 )
                 let declaredSequence = declaration(fromEnum: `enum`, forSpecifications: specifications)
                 let codingKeySequence = codingKeys(fromEnum: `enum`, forSpecifications: specifications)
-                var decodeInitializerCode = ""
-                var encodeSequence = ""
+                var codableTypeSequence = ""
                 if specifications.isCodable(`enum`) {
-                    decodeInitializerCode = decodeInitializer(fromEnum: `enum`).indent + "\n"
-                    encodeSequence = encode(fromEnum: `enum`).indent
+                    codableTypeSequence = decodeInitializer(fromEnum: `enum`).indent + "\n\n" + encode(fromEnum: `enum`).indent
                 } else if specifications.isDecodable(`enum`) {
-                    decodeInitializerCode = decodeInitializer(fromEnum: `enum`).indent
+                    codableTypeSequence = decodeInitializer(fromEnum: `enum`).indent
                 } else if specifications.isEncodable(`enum`) {
-                    encodeSequence = encode(fromEnum: `enum`).indent
+                    codableTypeSequence = encode(fromEnum: `enum`).indent
                 }
                 let sourceCode = """
                     \(headerSequence)
                     \(rawObject)
                     \(declaredSequence)
                     \(codingKeySequence)
-                    \(decodeInitializerCode)
-                    \(encodeSequence)
+                    \(codableTypeSequence)
                     }
                     """
                 return AutographImplementation(

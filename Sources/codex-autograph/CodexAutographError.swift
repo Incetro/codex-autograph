@@ -15,9 +15,6 @@ public enum CodexAutographError {
 
     // MARK: - Cases
 
-    /// You didn't specify any desired path to the target object
-    case noFolders
-
     /// You haven't specified a path to plain objects
     case noPlainsFolder
 
@@ -34,8 +31,6 @@ extension CodexAutographError: LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .noFolders:
-            return "You didn't specify any desired path to the target object"
         case .noPlainsFolder:
             return "You haven't specified a path to plain objects"
         case .noEnumsFolder:
