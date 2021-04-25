@@ -123,7 +123,7 @@ extension CodeKeyedContainerImplementationComposer: ImplementationComposer {
             throw CodexAutographError.noEnumsFolder
         }
         let header = headerComment(projectName: parameters.projectName)
-        var sourceCode = ""
+        let sourceCode: String
         if let valuesCount = parameters[.keyedContainerValuesCount] {
             sourceCode = """
             \(header)

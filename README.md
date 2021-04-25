@@ -195,12 +195,12 @@ extension ExampleEnum: Codable {
         case .someEmptyCase:
             self = .someEmptyCase
         default:
-        	throw DecodingError.dataCorrupted(
-        		DecodingError.Context(
-        			codingPath: container.codingPath,
-        			debugDescription: "Unabled to decode enum."
-        		)
-       		)
+            throw DecodingError.dataCorrupted(
+                DecodingError.Context(
+                    codingPath: container.codingPath,
+                    debugDescription: "Unabled to decode enum."
+                )
+            )
         }
     }
 
