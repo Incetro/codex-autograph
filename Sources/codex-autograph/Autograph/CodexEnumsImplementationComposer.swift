@@ -47,7 +47,7 @@ public final class CodexEnumsImplementationComposer {
         """
     }
 
-    /// Declaration
+    /// Enum extension declaration
     /// - Parameters:
     ///   - enum: target enum
     ///   - specifications: Specifications instance
@@ -69,7 +69,7 @@ public final class CodexEnumsImplementationComposer {
         """
     }
 
-    /// Coding keys enum
+    /// Enum of coding keys
     /// - Parameters:
     ///   - enum: target enum
     ///   - specifications: Specifications instance
@@ -142,7 +142,7 @@ public final class CodexEnumsImplementationComposer {
                         let (\(argumentNames.joined(separator: ", "))): (\(argumentTypes.joined(separator: ", "))) = try container.decodeValues(for: .\(`case`.name))
                         self = .\(`case`.name)(\(initializerArguments.joined(separator: ", ")))
                     """
-                } else if `case`.arguments.count > 2 {
+                } else {
                     var argumentNames: [String] = []
                     var argumentTypes: [String] = []
                     var initializerArguments: [String] = []
@@ -190,9 +190,11 @@ public final class CodexEnumsImplementationComposer {
             switch key {
         \(switchCases.indent)
             default:
-                throw DecodingError.valueNotFound(
-                    Self.self,
-                    DecodingError.Context(codingPath: CodingKeys.allCases, debugDescription: "\(`enum`.name)/not found")
+                throw DecodingError.dataCorrupted(
+                    DecodingError.Context(
+                        codingPath: container.codingPath,
+                        debugDescription: "Unabled to decode enum."
+                    )
                 )
             }
         }
@@ -227,7 +229,7 @@ public final class CodexEnumsImplementationComposer {
                         case let .\(`case`.name)( \(firstName), \(secondName)):
                             try container.encodeValues(\(firstName), \(secondName), for: .\(`case`.name))
                         """
-                    } else if `case`.arguments.count > 2 {
+                    } else {
                         var argumentNames: [String] = []
                         var count = 1
                         for argument in `case`.arguments {

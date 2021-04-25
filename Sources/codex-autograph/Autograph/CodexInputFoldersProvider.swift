@@ -25,13 +25,12 @@ extension CodexInputFoldersProvider: InputFoldersProvider {
         var inputFolders: [String] = []
         if let plainsFolder = parameters[.plains] {
             inputFolders.append(plainsFolder)
-        } else {
-            throw CodexAutographError.noPlainsFolder
         }
         if let enumsFolder = parameters[.enums] {
             inputFolders.append(enumsFolder)
-        } else {
-            throw CodexAutographError.noEnumsFolder
+        }
+        if inputFolders.isEmpty {
+            throw CodexAutographError.noFolders
         }
         return inputFolders
     }

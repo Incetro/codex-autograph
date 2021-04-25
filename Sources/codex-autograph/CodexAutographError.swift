@@ -21,6 +21,9 @@ public enum CodexAutographError {
     /// You haven't specified a path to enum objects
     case noEnumsFolder
 
+    /// You haven't specified a path to any objects
+    case noFolders
+
     /// You heven't specefied a project name of needed project
     case noProjectName
 }
@@ -35,6 +38,8 @@ extension CodexAutographError: LocalizedError {
             return "You haven't specified a path to plain objects"
         case .noEnumsFolder:
             return "You haven't specified a path to enum objects"
+        case .noFolders:
+            return "You haven't specified a path to any objects"
         case .noProjectName:
             return "You heven't specefied a project name of needed project"
         }

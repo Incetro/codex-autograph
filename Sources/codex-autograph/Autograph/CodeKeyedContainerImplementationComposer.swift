@@ -41,18 +41,13 @@ public final class CodeKeyedContainerImplementationComposer {
     /// - Parameter valuesCount: needed values count
     /// - Returns: encode methods sequence from string
     private func encodeValuesSequence(valuesCount: Int) -> [String] {
-        var encodeSequence: [String] = []
-        for valueCount in 1...valuesCount {
-            var genericTypes: [String] = []
-            var arguments: [String] = []
-            var encodes: [String] = []
-            for count in 1...valueCount {
-                genericTypes.append("V\(count): Encodable")
-                arguments.append("_ v\(count): V\(count)".indent)
-                encodes.append("try container.encode(v\(count))".indent)
-            }
-            encodeSequence.append(
-            """
+        (1...valuesCount).map {
+            let (genericTypes, arguments, encodes) = (
+                (1...$0).map { "V\($0): Encodable" },
+                (1...$0).map { "_ v\($0): V\($0)".indent },
+                (1...$0).map { "try container.encode(v\($0))".indent }
+            )
+            return """
             mutating func encodeValues<\(genericTypes.joined(separator: ", "))>(
             \(arguments.joined(separator: ",\n")),
                 for key: Key
@@ -61,9 +56,7 @@ public final class CodeKeyedContainerImplementationComposer {
             \(encodes.joined(separator: "\n"))
             }
             """.indent
-            )
         }
-        return encodeSequence
     }
 
     /// Keyed encoding container declaration
@@ -84,18 +77,13 @@ public final class CodeKeyedContainerImplementationComposer {
     /// - Parameter valuesCount: needed values count
     /// - Returns: decode methods sequence from string
     private func decodeValuesSequence(valuesCount: Int) -> [String] {
-        var decodeSequence: [String] = []
-        for valueCount in 1...valuesCount {
-            var genericTypes: [String] = []
-            var returns: [String] = []
-            var decodes: [String] = []
-            for count in 1...valueCount {
-                genericTypes.append("V\(count): Decodable")
-                returns.append("V\(count)")
-                decodes.append("try container.decode(V\(count).self)".indent.indent)
-            }
-            decodeSequence.append(
-            """
+        (1...valuesCount).map {
+            let (genericTypes, returns, decodes) = (
+                (1...$0).map { "V\($0): Decodable" },
+                (1...$0).map { "V\($0)" },
+                (1...$0).map { "try container.decode(V\($0).self)".indent.indent }
+            )
+            return """
             func decodeValues<\(genericTypes.joined(separator: ", "))>(
                 for key: Key
             ) throws -> (\(returns.joined(separator: ", "))) {
@@ -105,9 +93,7 @@ public final class CodeKeyedContainerImplementationComposer {
                 )
             }
             """.indent
-            )
         }
-        return decodeSequence
     }
 
     /// Keyed encoding container declaration
@@ -137,20 +123,20 @@ extension CodeKeyedContainerImplementationComposer: ImplementationComposer {
             throw CodexAutographError.noEnumsFolder
         }
         let header = headerComment(projectName: parameters.projectName)
-        var encodeDeclaration = ""
-        var decodeDeclaration = ""
+        var sourceCode = ""
         if let valuesCount = parameters[.keyedContainerValuesCount] {
-            encodeDeclaration = keyedEncodingContainerDeclaration(count: Int(valuesCount) ?? 0)
-            decodeDeclaration = keyedEncodingContainerDeclaration(count: Int(valuesCount) ?? 0)
+            sourceCode = """
+            \(header)
+            \(keyedEncodingContainerDeclaration(count: Int(valuesCount) ?? Constants.keyedContainerValuesCount))
+            \(keyedEncodingContainerDeclaration(count: Int(valuesCount) ?? Constants.keyedContainerValuesCount))
+            """
         } else {
-            encodeDeclaration = keyedEncodingContainerDeclaration(count: Constants.valuesCount)
-            decodeDeclaration = keyedEncodingContainerDeclaration(count: Constants.valuesCount)
+            sourceCode = """
+            \(header)
+            \(keyedEncodingContainerDeclaration(count: Constants.keyedContainerValuesCount))
+            \(keyedEncodingContainerDeclaration(count: Constants.keyedContainerValuesCount))
+            """
         }
-        let sourceCode = """
-        \(header)
-        \(encodeDeclaration)
-        \(decodeDeclaration)
-        """
         return [
             AutographImplementation(
                 filePath: "\(enumsFolder)/KeyedContainer.swift",

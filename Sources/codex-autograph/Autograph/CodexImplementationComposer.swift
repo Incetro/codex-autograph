@@ -26,12 +26,12 @@ extension CodexImplementationComposer: ImplementationComposer {
         forSpecifications specifications: Specifications,
         parameters: AutographExecutionParameters
     ) throws -> [AutographImplementation] {
-        let structModels = try CodexStructuresImplementationComposer()
+        let structures = try CodexStructuresImplementationComposer()
             .compose(forSpecifications: specifications, parameters: parameters)
-        let enumModels = try CodexEnumsImplementationComposer()
+        let enums = try CodexEnumsImplementationComposer()
             .compose(forSpecifications: specifications, parameters: parameters)
         let helper = try CodeKeyedContainerImplementationComposer()
             .compose(forSpecifications: specifications, parameters: parameters)
-        return structModels + enumModels + helper
+        return structures + enums + helper
     }
 }

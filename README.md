@@ -144,7 +144,7 @@ static func makeCustomNameFormatter() -> DateFormatter {
 Of course, if you inherit Decodable or Encodable protocols you will only get decoding initializer or encoding function
 
 #### Codax-autograph also helps in creating enum models, for example, for easy saving of user data.
-To do this, you do not need to specify any special arguments, just specify the parameter and the path to the folder with enums.
+To do this, you do not need to specify any special arguments, just specify the parameter `-enums` and the path to the folder with enums.
 For example we have:
 
 ```swift
@@ -195,10 +195,12 @@ extension ExampleEnum: Codable {
         case .someEmptyCase:
             self = .someEmptyCase
         default:
-            throw DecodingError.valueNotFound(
-                Self.self,
-                DecodingError.Context(codingPath: CodingKeys.allCases, debugDescription: "ExampleEnum/not found")
-            )
+        	throw DecodingError.dataCorrupted(
+        		DecodingError.Context(
+        			codingPath: container.codingPath,
+        			debugDescription: "Unabled to decode enum."
+        		)
+       		)
         }
     }
 

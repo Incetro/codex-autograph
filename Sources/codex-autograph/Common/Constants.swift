@@ -20,5 +20,5 @@ enum Constants {
     static let codable = "Codable"
     static let decodable = "Decodable"
     static let encodable = "Encodable"
-    static let valuesCount = 5
+    static let keyedContainerValuesCount = 5
 }

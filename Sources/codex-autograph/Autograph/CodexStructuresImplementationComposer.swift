@@ -60,7 +60,7 @@ public final class CodexStructuresImplementationComposer {
         return imports.filter { $0 != "Foundation" }
     }
 
-    /// Declaration
+    /// Structure extension declaration
     /// - Parameters:
     ///   - structure: target structure
     ///   - specifications: Specifications instance
