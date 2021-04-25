@@ -143,6 +143,122 @@ static func makeCustomNameFormatter() -> DateFormatter {
 
 Of course, if you inherit Decodable or Encodable protocols you will only get decoding initializer or encoding function
 
+#### Codax-autograph also helps in creating enum models, for example, for easy saving of user data.
+To do this, you do not need to specify any special arguments, just specify the parameter `-enums` and the path to the folder with enums.
+For example we have:
+
+```swift
+// MARK: - ExampleEnum
+
+enum ExampleEnum: Codable {
+
+    // MARK: - Cases
+
+    case userName(String)
+    case age(count: Int)
+    case threeFavoriteColors(String, String, String)
+    case someEmptyCase
+}
+```
+The following extension will be generated from this example:
+
+```swift
+// MARK: - Codable
+
+extension ExampleEnum: Codable {
+
+    // MARK: - CodingKeys
+
+    enum CodingKeys: CodingKey, CaseIterable {
+
+        // MARK: - Cases
+
+        case userName
+        case age
+        case threeFavoriteColors
+        case someEmptyCase
+    }
+
+    // MARK: - Decodable
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let key = container.allKeys.first
+        switch key {
+        case .userName:
+            self = .userName(try container.decode(String.self, forKey: .userName))
+        case .age:
+            self = .age(count: try container.decode(Int.self, forKey: .age))
+        case .threeFavoriteColors:
+            let (value1, value2): (String, String) = try container.decodeValues(for: .threeFavoriteColors)
+            self = .threeFavoriteColors(value1, value2)
+        case .someEmptyCase:
+            self = .someEmptyCase
+        default:
+            throw DecodingError.dataCorrupted(
+                DecodingError.Context(
+                    codingPath: container.codingPath,
+                    debugDescription: "Unabled to decode enum."
+                )
+            )
+        }
+    }
+
+    // MARK: - Encodable
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .userName(let userName):
+            try container.encode(userName, forKey: .userName)
+        case .age(let age):
+            try container.encode(age, forKey: .age)
+        case let .threeFavoriteColors( value1, value2):
+            try container.encodeValues(value1, value2, for: .threeFavoriteColors)
+        case .someEmptyCase:
+            try container.encode("someEmptyCase", forKey: .someEmptyCase)
+        }
+    }
+}
+
+```
+
+An auxiliary file will also be generated to handle multiple arguments in the case.
+Example:
+
+```swift
+// MARK: - KeyedEncodingContainer
+
+extension KeyedEncodingContainer {
+
+    mutating func encodeValues<V1: Encodable, V2: Encodable>(
+        _ v1: V1,
+        _ v2: V2,
+        for key: Key
+    ) throws {
+        var container = self.nestedUnkeyedContainer(forKey: key)
+        try container.encode(v1)
+        try container.encode(v2)
+    }
+ }
+ 
+// MARK: - KeyedDecodingContainer
+
+extension KeyedDecodingContainer {
+
+    func decodeValues<V1: Decodable, V2: Decodable>(
+        for key: Key
+    ) throws -> (V1, V2) {
+        var container = try self.nestedUnkeyedContainer(forKey: key)
+        return (
+            try container.decode(V1.self),
+            try container.decode(V2.self)
+        )
+    }
+ }
+```
+In the default case, this extension will generate methods for processing up to 5 variables. If you need to change the maximum number of variables, just specify the `-keyedContainerCount` `<required number>` parameter before generating
+
 ## Setup steps
 
 **1. Add submodule to your project.**
@@ -176,18 +292,22 @@ fi
 
 $CODEX_AUTOGRAPH_PATH \
     -plains "$SRCROOT/$PROJECT_NAME/Models/Plains" \
+    -enums "$SRCROOT/$PROJECT_NAME/Models/Enums" \
+    -keyedContainerCount 6 \
     -project_name $PROJECT_NAME
 
 ```
 
 Available arguments
 
-| Parameter         | Description                                                                       | Example                                                      |
-|-------------------|-----------------------------------------------------------------------------------|--------------------------------------------------------------|
-| help              | Print help info                                                                   | `./codex-autograph -help`                                    |
-| projectName       | Project name to be used in generated files                                        | `./codex-autograph -projectName yourName`                    |
-| plains            | Path to the folder, where plain objects files to be processed are stored          | `./codex-autograph -plains "./Models/Plain"`                 |
-| verbose           | Forces generator to print the whole process of generation                         | `./codex-autograph -verbose`                                 |
+| Parameter          | Description                                                                       | Example                                                      |
+|--------------------|-----------------------------------------------------------------------------------|--------------------------------------------------------------|
+| help               | Print help info                                                                   | `./codex-autograph -help`                                    |
+| projectName        | Project name to be used in generated files                                        | `./codex-autograph -projectName yourName`                    |
+| plains             | Path to the folder, where plain objects files to be processed are stored          | `./codex-autograph -plains "./Models/Plain"`                 |
+| enums              | Path to the folder, where enum objects files to be processed are stroed           | `./codex-autograph -enums "./Models/Enums"`                  |
+| keyedContainerCount| Need to specify the desired maximum count of variables in the keyed container extension| `./codex-autograph -keyedContainerCount 6`              |
+| verbose            | Forces generator to print the whole process of generation                         | `./codex-autograph -verbose`                                 |
 
 **5. Add generated files manually to your project.**
 
